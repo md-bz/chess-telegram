@@ -84,7 +84,7 @@ bot.command("newGame", async (ctx) => {
     bot.command("endGame", async (ctx) => {
         activeGame = false;
         // const pgn = await fs.readFile(gameFile, "utf-8");
-        await ctx.reply(gameFile);
+        // await ctx.reply(gameFile);
         // ctx.reply("game ended");
     });
 
