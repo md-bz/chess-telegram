@@ -21,7 +21,7 @@ bot.command("newGame", async (ctx) => {
         return;
     }
 
-    let gameFile = [];
+    let gameFile = "";
     let pos = new Position();
     let players = { w: ctx.from.username, b: "" };
     let count = 1;
@@ -83,9 +83,13 @@ bot.command("newGame", async (ctx) => {
 
     bot.command("endGame", async (ctx) => {
         activeGame = false;
+        pos = "";
+        gameFile = [];
+        count = 1;
+        players = {};
         // const pgn = await fs.readFile(gameFile, "utf-8");
         // await ctx.reply(gameFile);
-        // ctx.reply("game ended");
+        ctx.reply("game ended");
     });
 
     bot.command("board", board);
