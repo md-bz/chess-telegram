@@ -12,6 +12,9 @@ bot.command("start", (ctx) => {
         {}
     );
 });
+bot.command("hi", (ctx) => {
+    ctx.reply("HI");
+});
 
 // AWS event handler syntax (https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html)
 exports.handler = async (event) => {
@@ -22,7 +25,7 @@ exports.handler = async (event) => {
         console.error("error in handler:", e);
         return {
             statusCode: 400,
-            body: "This endpoint is meant for bot and telegram communication",
+            body: "This endpoint is meant for (abot and telegram communication",
         };
     }
 };
