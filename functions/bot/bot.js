@@ -1,7 +1,13 @@
 // const fs = require("fs").promises;
 const { Telegraf } = require("telegraf");
 const { Position } = require("kokopu");
-const { read, insert, playersSet, deletePlayers } = require("./database");
+const {
+    read,
+    insert,
+    playersSet,
+    deletePlayers,
+    readPlayers,
+} = require("./database");
 const { createGame, endGame } = require("./game");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -19,6 +25,7 @@ bot.command("newGame", async (ctx) => {
     }
 
     await playersSet(chatId, ctx.from.id);
+    await ctx.reply("Game started waiting for player 2 join with /join");
 });
 
 bot.command("join", async (ctx) => {
