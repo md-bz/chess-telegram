@@ -102,7 +102,8 @@ bot.command("endGame", async (ctx) => {
         await ctx.reply("there is no active game start an game with /newGame");
         return;
     }
-    await endGame(chatId);
+    let pgn = await endGame(chatId);
+    ctx.reply(pgn);
 });
 
 // AWS event handler syntax (https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html)
