@@ -6,7 +6,9 @@ const {
     insert,
     playersSet,
     deletePlayers,
+    update,
     readPlayers,
+    deleteChessGames,
 } = require("./database");
 const { createGame, endGame } = require("./game");
 
