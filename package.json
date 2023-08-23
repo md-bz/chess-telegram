@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "@supabase/supabase-js": "^2.33.1",
     "abort-controller": "^3.0.0",
     "buffer-alloc": "^1.2.0",
     "buffer-alloc-unsafe": "^1.1.0",

@@ -1,102 +1,98 @@
 // const fs = require("fs").promises;
 const { Telegraf } = require("telegraf");
 const { Position } = require("kokopu");
+const { read, insert, playersSet, deletePlayers } = require("./database");
+const { createGame, endGame } = require("./game");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-let activeGame = false;
-
-bot.command("start", (ctx) => {
-    console.log(ctx.from);
-    bot.telegram.sendMessage(
-        ctx.chat.id,
-        "hello there! Welcome to my new telegram bot.",
-        {}
-    );
+bot.command("start", async (ctx) => {
+    ctx.reply("Hi there welocme to chess bot");
 });
 
 bot.command("newGame", async (ctx) => {
-    if (activeGame) {
-        cyx.reply("there is already an active game");
+    const chatId = ctx.chat.id;
+    if (read(chatId) !== undefined) {
+        await cyx.reply("there is already an active game");
         return;
     }
 
-    let gameFile = "";
-    let pos = new Position();
-    let players = { w: ctx.from.username, b: "" };
-    let count = 1;
+    await playersSet(chatId, ctx.from.id);
+});
 
-    async function board(ctx) {
-        await ctx.reply(pos.ascii());
+bot.command("join", async (ctx) => {
+    const chatId = ctx.chat.id;
+    let players = await readPlayers(chatId);
+    if (players === undefined) {
+        ctx.reply("there is no active game start an game with /newGame");
+        return;
+    }
+    if (players.player2_id !== null) {
+        ctx.reply("there is already an active game");
+        return;
+    }
+    await createGame(
+        chatId,
+        players.player1_id,
+        ctx.from.id,
+        players.player1_name,
+        ctx.from.first_name + ctx.from.last_name
+    );
+    await deletePlayers(chatId);
+    await ctx.reply("game started play with /play");
+});
+
+bot.command("play", async (ctx) => {
+    let chatId = ctx.chat.id;
+    let game = await read(chatId);
+    if (game === undefined) {
+        await ctx.reply("there is no active game start an game with /newGame");
+        return;
+    }
+    if (game.white !== ctx.from.id) {
+        await ctx.reply("its not your turn");
+        return;
     }
 
-    async function join(ctx) {
-        if (activeGame) {
-            ctx.reply("the game is already started");
-            return;
-        }
+    let texts = ctx.message.text.split(" ");
+    let move = texts[1];
 
-        players.black = ctx.from.username;
-        activeGame = true;
-        await ctx.reply("Game Started");
+    let pos = new Position(game.fen);
+    let turn = pos.turn();
+    if (pos.play(move)) {
+        if (turn === "w") {
+            game.pgn = game.pgn + `${game.count}. ${move} `;
+        }
+        if (turn === "b") {
+            game.pgn = game.pgn + `${move}\n`;
+            game.count++;
+        }
+        let error = await update(chatId, game.pgn, pos.fen(), game.count);
+        ctx.reply("move played " + move);
+        return;
     }
+    ctx.reply("invalid move");
+});
 
-    async function play(ctx) {
-        if (!activeGame) {
-            ctx.reply("NO Active Game!");
-            return;
-        }
-
-        const currentUser = await ctx.from.username;
-
-        if (currentUser !== players.w && currentUser !== players.b) {
-            ctx.reply("You're not playing!");
-            return;
-        }
-
-        // if(players.pos.turn() !== currentUser)
-        let texts = ctx.message.text.split(" ");
-        let move = texts[1];
-
-        if (pos.play(move)) {
-            if (pos.turn() == "b") {
-                gameFile.push(`${count}. ${move}`);
-                // await fs.appendFile(gameFile, `${count}. ${move} `);
-            } else if (currentUser) {
-                // await fs.appendFile(gameFile, `${move} `);
-                gameFile.push(`${move} `);
-                count++;
-            }
-
-            await ctx.reply(`move played ${move}`);
-        } else {
-            await ctx.reply("Invalid move");
-        }
+bot.command("board", async (ctx) => {
+    let chatId = ctx.chat.id;
+    let game = await read(chatId);
+    if (game === undefined) {
+        await ctx.reply("there is no active game start an game with /newGame");
+        return;
     }
+    let pos = new Position(game.fen);
+    await ctx.reply(pos.ascii());
+});
 
-    // await fs.writeFile(gameFile, `[Site chsss telegram bot]\n`);
-    // await fs.appendFile(gameFile, `[Date ${new Date().toISOString()}]\n`);
-    // await fs.appendFile(gameFile, `[White ${ctx.from.first_name}]\n`);
-    // await fs.appendFile(gameFile, `[Black ${ctx.from.first_name}]\n`);
-
-    await ctx.reply("waiting for black, join with /join");
-
-    bot.command("endGame", async (ctx) => {
-        activeGame = false;
-        pos = "";
-        gameFile = [];
-        count = 1;
-        players = {};
-        // const pgn = await fs.readFile(gameFile, "utf-8");
-        // await ctx.reply(gameFile);
-        ctx.reply("game ended");
-    });
-
-    bot.command("board", board);
-    bot.command("join", join);
-    bot.command("play", play);
-
-    // im using telegraf js for creating a telegram bot i want to stop the function called on command newGame how can i do that
+bot.command("endGame", async (ctx) => {
+    let chatId = ctx.chat.id;
+    let game = await read(chatId);
+    if (game === undefined) {
+        await ctx.reply("there is no active game start an game with /newGame");
+        return;
+    }
+    await endGame(chatId);
 });
 
 // AWS event handler syntax (https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html)
