@@ -13,7 +13,7 @@ bot.command("start", async (ctx) => {
 bot.command("newGame", async (ctx) => {
     const chatId = ctx.chat.id;
     if (read(chatId) !== undefined) {
-        await cyx.reply("there is already an active game");
+        await ctx.reply("there is already an active game");
         return;
     }
 
