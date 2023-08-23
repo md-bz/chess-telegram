@@ -52,4 +52,4 @@ async function endGame(chatId) {
     return game.pgn;
 }
 
-module.exports = { createGame, play, endGame };
+module.exports = { createGame, endGame };
