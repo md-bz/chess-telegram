@@ -26,27 +26,31 @@ bot.command("newGame", async (ctx) => {
         return;
     }
 
-    await playersSet(chatId, ctx.from.id);
+    await playersSet(chatId, ctx.from.id, ctx.from.first_name);
     await ctx.reply("Game started waiting for player 2 join with /join");
 });
 
 bot.command("join", async (ctx) => {
     const chatId = ctx.chat.id;
+    let game = await read(chatId);
+
+    if (game !== undefined) {
+        await ctx.reply("there is already an active game play with /play");
+        return;
+    }
+
     let players = await readPlayers(chatId);
     if (players === undefined) {
         ctx.reply("there is no active game start an game with /newGame");
         return;
     }
-    if (players.player2_id !== null) {
-        ctx.reply("there is already an active game");
-        return;
-    }
+
     await createGame(
         chatId,
         players.player1_id,
         ctx.from.id,
         players.player1_name,
-        ctx.from.first_name + ctx.from.last_name
+        ctx.from.first_name
     );
     await deletePlayers(chatId);
     await ctx.reply("game started play with /play");
@@ -55,20 +59,27 @@ bot.command("join", async (ctx) => {
 bot.command("play", async (ctx) => {
     let chatId = ctx.chat.id;
     let game = await read(chatId);
+
     if (game === undefined) {
         await ctx.reply("there is no active game start an game with /newGame");
-        return;
-    }
-    if (game.white !== ctx.from.id) {
-        await ctx.reply("its not your turn");
         return;
     }
 
     let texts = ctx.message.text.split(" ");
     let move = texts[1];
+    if (move == undefined) {
+        ctx.reply("invalid move play with /play move ");
+        return;
+    }
 
     let pos = new Position(game.fen);
     let turn = pos.turn();
+    let currentPlayerId = turn === "w" ? game.white : game.black;
+    if (currentPlayerId !== ctx.from.id) {
+        await ctx.reply("its not your turn");
+        return;
+    }
+
     if (pos.play(move)) {
         if (turn === "w") {
             game.pgn = game.pgn + `${game.count}. ${move} `;

@@ -10,9 +10,6 @@ const {
 const { createClient } = require("@supabase/supabase-js");
 const { Position } = require("kokopu");
 
-let id1 = 4587;
-let id2 = 5478;
-let id3 = 8721;
 async function createGame(
     chatId,
     white,

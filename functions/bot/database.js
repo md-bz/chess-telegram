@@ -40,15 +40,6 @@ async function playersSet(chatId, playerId, playerName) {
             .select();
         return error;
     }
-    if (players.player2_id === null) {
-        const { data, error } = await supabase
-            .from("players")
-            .update({ player2_id: playerId, player2_name: playerName })
-            .eq("chatId", chatId)
-            .select();
-        return error;
-    }
-    return;
 }
 
 async function deletePlayers(chatId) {
