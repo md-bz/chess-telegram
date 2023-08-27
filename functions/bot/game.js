@@ -1,23 +1,8 @@
-const {
-    read,
-    insert,
-    update,
-    playersSet,
-    readPlayers,
-    deleteChessGames,
-    deletePlayers,
-} = require("./database");
+const { read, insert, update, deleteChessGames } = require("./database");
 const { createClient } = require("@supabase/supabase-js");
 const { Position } = require("kokopu");
 
-async function createGame(
-    chatId,
-    white,
-    black,
-    whiteName,
-    blackName,
-    fen = ""
-) {
+async function createGame(chatId, white, whiteName, fen = "") {
     let activeGame = await read(chatId);
     if (activeGame !== undefined) {
         console.log("theres already a game in process ");
@@ -31,10 +16,9 @@ async function createGame(
     let gamePgn = `[event ""]
     [Site "chsss telegram bot"]
     [Date "${new Date().toLocaleDateString()}"]
-    [White "${whiteName}"]
-    [Black "${blackName}"]\n`;
+    [White "${whiteName}"]\n`;
 
-    let error = await insert(chatId, gamePgn, fen, white, black);
+    let error = await insert(chatId, gamePgn, fen, white);
 
     return error;
 }
@@ -49,4 +33,11 @@ async function endGame(chatId) {
     return game.pgn;
 }
 
-module.exports = { createGame, endGame };
+async function setBlack(chatId, black, blackName) {
+    let game = await read(chatId);
+    game.pgn += `[Black "${blackName}"]\n`;
+    let error = await update(chatId, game.pgn, game.fen, game.count, black);
+    return error;
+}
+
+module.exports = { createGame, endGame, setBlack };

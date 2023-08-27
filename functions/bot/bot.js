@@ -1,17 +1,8 @@
 // const fs = require("fs").promises;
 const { Telegraf } = require("telegraf");
 const { Position } = require("kokopu");
-const {
-    read,
-    insert,
-    playersSet,
-    deletePlayers,
-    update,
-    readPlayers,
-    deleteChessGames,
-} = require("./database");
-const { createGame, endGame } = require("./game");
-
+const { read, insert, update, deleteChessGames } = require("./database");
+const { createGame, endGame, setBlack } = require("./game");
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.command("start", async (ctx) => {
@@ -26,33 +17,18 @@ bot.command("newGame", async (ctx) => {
         return;
     }
 
-    await playersSet(chatId, ctx.from.id, ctx.from.first_name);
-    await ctx.reply("Game started waiting for player 2 join with /join");
+    await createGame(chatId, ctx.from.id, ctx.from.first_name);
+    await ctx.reply("waiting for player 2 join with /join");
 });
 
 bot.command("join", async (ctx) => {
     const chatId = ctx.chat.id;
     let game = await read(chatId);
-
-    if (game !== undefined) {
+    if (game.black !== null) {
         await ctx.reply("there is already an active game play with /play");
         return;
     }
-
-    let players = await readPlayers(chatId);
-    if (players === undefined) {
-        ctx.reply("there is no active game start an game with /newGame");
-        return;
-    }
-
-    await createGame(
-        chatId,
-        players.player1_id,
-        ctx.from.id,
-        players.player1_name,
-        ctx.from.first_name
-    );
-    await deletePlayers(chatId);
+    await setBlack(chatId, ctx.from.id, ctx.from.first_name);
     await ctx.reply("game started play with /play");
 });
 
@@ -88,11 +64,46 @@ bot.command("play", async (ctx) => {
             game.pgn = game.pgn + `${move}\n`;
             game.count++;
         }
+        if (pos.isCheckmate()) {
+            let result;
+            if (turn === "w") {
+                ctx.reply("checkmate, white wins");
+                result = "1-0";
+            }
+            if (turn === "b") {
+                ctx.reply("checkmate, black wins");
+                result = "0-1";
+            }
+            pgn = pgn + result;
+            await endGame(chatId);
+            ctx.reply(pgn);
+            return;
+        }
+
         let error = await update(chatId, game.pgn, pos.fen(), game.count);
         ctx.reply("move played " + move);
         return;
     }
     ctx.reply("invalid move");
+});
+bot.command("resign", async (ctx) => {
+    let chatId = ctx.chat.id;
+    let game = await read(chatId);
+    if (game === undefined) {
+        await ctx.reply("there is no active game start an game with /newGame");
+        return;
+    }
+    let result;
+    if (ctx.from.id === game.white) {
+        await ctx.reply("white resigned, black wins.");
+        result = "0-1";
+    } else {
+        await ctx.reply("black resigned, white wins.");
+        result = "1-0";
+    }
+
+    let pgn = await endGame(chatId);
+    await ctx.reply(pgn + result);
 });
 
 bot.command("board", async (ctx) => {
@@ -104,17 +115,6 @@ bot.command("board", async (ctx) => {
     }
     let pos = new Position(game.fen);
     await ctx.reply(pos.ascii());
-});
-
-bot.command("endGame", async (ctx) => {
-    let chatId = ctx.chat.id;
-    let game = await read(chatId);
-    if (game === undefined) {
-        await ctx.reply("there is no active game start an game with /newGame");
-        return;
-    }
-    let pgn = await endGame(chatId);
-    ctx.reply(pgn);
 });
 
 // AWS event handler syntax (https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html)
