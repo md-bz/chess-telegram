@@ -17,7 +17,7 @@ bot.command("new", async (ctx) => {
         return;
     }
     let fen = ctx.message.text.slice(8);
-    if (fen !== undefined) {
+    if (fen !== "") {
         try {
             let pos = new Position(fen);
             await createGame(chatId, ctx.from.id, ctx.from.first_name, fen);
