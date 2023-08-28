@@ -6,18 +6,29 @@ const { createGame, endGame, setBlack } = require("./game");
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.command("start", async (ctx) => {
-    ctx.reply("Hi there welocme to chess bot");
+    ctx.reply("Hi there Welcome to chess bot");
 });
 
-bot.command("newGame", async (ctx) => {
+bot.command("new", async (ctx) => {
     const chatId = ctx.chat.id;
     let game = await read(chatId);
     if (game !== undefined) {
         await ctx.reply("there is already an active game");
         return;
     }
+    let fen = ctx.message.text.slice(8);
+    if (fen !== undefined) {
+        try {
+            let pos = new Position(fen);
+            await createGame(chatId, ctx.from.id, ctx.from.first_name, fen);
+        } catch (error) {
+            ctx.reply(`invalid fen format,${error.message}`);
+            return;
+        }
+    } else {
+        await createGame(chatId, ctx.from.id, ctx.from.first_name);
+    }
 
-    await createGame(chatId, ctx.from.id, ctx.from.first_name);
     await ctx.reply("waiting for player 2 join with /join");
 });
 
@@ -64,8 +75,8 @@ bot.command("play", async (ctx) => {
             game.pgn = game.pgn + `${move}\n`;
             game.count++;
         }
+        let result;
         if (pos.isCheckmate()) {
-            let result;
             if (turn === "w") {
                 ctx.reply("checkmate, white wins");
                 result = "1-0";
@@ -78,6 +89,12 @@ bot.command("play", async (ctx) => {
             await endGame(chatId);
             ctx.reply(pgn);
             return;
+        } else if (pos.isStalemate()) {
+            ctx.reply("stalemate");
+            result = "1/2-1/2";
+            pgn = pgn + result;
+            await endGame(chatId);
+            ctx.reply(pgn);
         }
 
         let error = await update(chatId, game.pgn, pos.fen(), game.count);
@@ -86,6 +103,7 @@ bot.command("play", async (ctx) => {
     }
     ctx.reply("invalid move");
 });
+
 bot.command("resign", async (ctx) => {
     let chatId = ctx.chat.id;
     let game = await read(chatId);
