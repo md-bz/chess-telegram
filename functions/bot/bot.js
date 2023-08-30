@@ -16,7 +16,7 @@ bot.command("new", async (ctx) => {
         await ctx.reply("there is already an active game");
         return;
     }
-    let fen = ctx.message.text.slice(8);
+    let fen = ctx.message.text.slice(4);
     if (fen !== "") {
         try {
             let pos = new Position(fen);
@@ -85,15 +85,15 @@ bot.command("play", async (ctx) => {
                 await ctx.reply("checkmate, black wins");
                 result = "0-1";
             }
-            let pgn = await endGame(chatId);
-            await ctx.reply(pgn + result);
+            await endGame(chatId);
+            await ctx.reply(game.pgn + result);
             return;
         } else if (pos.isStalemate()) {
-            ctx.reply("stalemate");
+            await ctx.reply("stalemate");
             result = "1/2-1/2";
-            pgn = pgn + result;
             await endGame(chatId);
-            ctx.reply(pgn);
+            await ctx.reply(game.pgn + result);
+            return;
         }
 
         let error = await update(chatId, game.pgn, pos.fen(), game.count);
