@@ -78,16 +78,15 @@ bot.command("play", async (ctx) => {
         let result;
         if (pos.isCheckmate()) {
             if (turn === "w") {
-                ctx.reply("checkmate, white wins");
+                await ctx.reply("checkmate, white wins");
                 result = "1-0";
             }
             if (turn === "b") {
-                ctx.reply("checkmate, black wins");
+                await ctx.reply("checkmate, black wins");
                 result = "0-1";
             }
-            pgn = pgn + result;
-            await endGame(chatId);
-            ctx.reply(pgn);
+            let pgn = await endGame(chatId);
+            await ctx.reply(pgn + result);
             return;
         } else if (pos.isStalemate()) {
             ctx.reply("stalemate");
